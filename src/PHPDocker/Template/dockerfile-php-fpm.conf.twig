@@ -1,0 +1,37 @@
+{% set cleanupCommand = 'apt-get clean; rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc/*' %}
+{% spaceless %}
+    {% if phpVersion == '7.0.x' %}
+        {% set image = 'phpdockerio/php7-fpm:latest' %}
+    {% elseif phpVersion == '7.1.x' %}
+        {% set image = 'phpdockerio/php71-fpm:latest' %}
+    {% else %}
+        {% set image = 'phpdockerio/php56-fpm:latest' %}
+    {% endif %}
+FROM {{ image }}
+
+{% if extensionPackages %}
+# Install selected extensions and other stuff
+RUN apt-get update \
+    && apt-get -y --no-install-recommends install {% for package in extensionPackages %} {{ package }}{% endfor %} \
+    && {{ cleanupCommand }}
+{% endif %}
+
+{% if applicationType == 'phalcon' %}
+    {% spaceless %}
+        {% if phpVersion == '5.6.x' %}
+            {% set phalconPackage = 'php5-phalcon' %}
+        {% elseif phpVersion == '7.0.x' %}
+            {% set phalconPackage = 'php7.0-phalcon' %}
+        {% elseif phpVersion == '7.1.x' %}
+            {% set phalconPackage = 'php7.1-phalcon' %}
+        {% endif %}
+    {% endspaceless %}
+
+# Install phalcon
+RUN curl -s https://packagecloud.io/install/repositories/phalcon/stable/script.deb.sh | bash \
+    && apt-get install -y {{ phalconPackage }} \
+    && {{ cleanupCommand }}
+{% endif %}
+
+WORKDIR "/application"
+{% endspaceless %}

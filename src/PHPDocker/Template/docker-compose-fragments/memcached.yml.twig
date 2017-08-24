@@ -1,0 +1,5 @@
+{% if project.hasMemcached() %}
+    memcached:
+      image: memcached:alpine
+      container_name: {{ slug }}-memcached
+{% endif %}
