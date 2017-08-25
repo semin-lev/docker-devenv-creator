@@ -28,10 +28,10 @@ class MySQL extends AbstractMySQL
     /**
      * Available versions
      */
-    protected const VERSION_55 = '5.5';
-    protected const VERSION_56 = '5.6';
-    protected const VERSION_57 = '5.7';
-    protected const VERSION_80 = '8.0';
+    const VERSION_55 = '5.5';
+    const VERSION_56 = '5.6';
+    const VERSION_57 = '5.7';
+    const VERSION_80 = '8.0';
 
     protected const ALLOWED_VERSIONS = [
         self::VERSION_80 => '8.0.x',

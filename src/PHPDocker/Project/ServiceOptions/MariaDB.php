@@ -28,9 +28,9 @@ class MariaDB extends AbstractMySQL
     /**
      * Available versions
      */
-    protected const VERSION_55  = '5.5';
-    protected const VERSION_100 = '10.0';
-    protected const VERSION_101 = '10.1';
+    const VERSION_55  = '5.5';
+    const VERSION_100 = '10.0';
+    const VERSION_101 = '10.1';
 
     protected const ALLOWED_VERSIONS = [
         self::VERSION_101 => '10.1.x',
