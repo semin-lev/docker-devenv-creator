@@ -54,7 +54,7 @@ class AvailableExtensionsFactory
      *
      * @param string $phpVersion
      *
-     * @return mixed
+     * @return BaseAvailableExtensions
      */
     public static function create(string $phpVersion)
     {

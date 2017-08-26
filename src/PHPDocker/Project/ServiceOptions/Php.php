@@ -68,7 +68,7 @@ class Php extends Base
     }
 
     /**
-     * @return array
+     * @return array|PhpExtension[]
      */
     public function getExtensions(): array
     {
@@ -118,6 +118,64 @@ class Php extends Base
     {
         $this->extensions[] = $extension;
 
+        return $this;
+    }
+
+    /**
+     * @param string $extensionName
+     * @return bool
+     */
+    public function hasExtension(string $extensionName): bool
+    {
+        foreach ($this->getExtensions() as $extension) {
+            if ($extension->getName() == $extensionName) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getExtensionNames() : array
+    {
+        $result = [];
+        foreach ($this->getExtensions() as $ext) {
+            $result[] = $ext->getName();
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param string $extName
+     * @return Php
+     */
+    public function removeExtension(string $extName): self
+    {
+        $keyForUnset = null;
+        foreach ($this->getExtensions() as $key => $ext) {
+            if ($ext->getName() == $extName) {
+                $keyForUnset = $key;
+                break;
+            }
+        }
+
+        if ($keyForUnset!==null) {
+            unset($this->extensions[$keyForUnset]);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Php
+     */
+    public function clearAllExtensions(): self
+    {
+        $this->extensions = [];
         return $this;
     }
 

@@ -11,18 +11,15 @@
 namespace Command;
 
 
+use DefaultConfigurationFactory\ProjectFactory;
 use PHPDocker\Generator\Factory;
-use PHPDocker\PhpExtension\Php56AvailableExtensions;
-use PHPDocker\PhpExtension\Php70AvailableExtensions;
-use PHPDocker\PhpExtension\Php71AvailableExtensions;
-use PHPDocker\Project\Project;
+use PHPDocker\PhpExtension\AvailableExtensionsFactory;
 use PHPDocker\Project\ServiceOptions\Application;
 use PHPDocker\Project\ServiceOptions\Elasticsearch;
 use PHPDocker\Project\ServiceOptions\MariaDB;
 use PHPDocker\Project\ServiceOptions\MySQL;
 use PHPDocker\Project\ServiceOptions\Php;
 use PHPDocker\Project\ServiceOptions\Postgres;
-use Slugifier\BaseSlugifier;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputArgument;
@@ -44,7 +41,7 @@ class GenerateDevenvCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $generator = Factory::create();
-        $project = new Project(new BaseSlugifier());
+        $project = (new ProjectFactory)->getDefaultConfiguration();
 
         $project->setName($input->getArgument('project_name'));
 
@@ -54,15 +51,18 @@ class GenerateDevenvCommand extends Command
 
         // get app type
         $applicationType = $quest->ask($input, $output, new ChoiceQuestion(
-            'Choice application type. The default is '.Application::APPLICATION_TYPE_SYMFONY,
+            'Choice application type. The default is '.$project->getApplicationOptions()->getApplicationType(),
             Application::getChoices(),
-            Application::APPLICATION_TYPE_SYMFONY
+            $project->getApplicationOptions()->getApplicationType()
         ));
         $project->getApplicationOptions()->setApplicationType($applicationType);
         //end get app type
 
         //get app port
-        $portQuest = new Question("Select external port, default is 8000: ", 8000);
+        $portQuest = new Question(
+            sprintf("Select external port, default is %d: ", $project->getBasePort()),
+            $project->getBasePort()
+        );
         $portQuest->setNormalizer(function ($value){
             return (int)$value;
         });
@@ -80,112 +80,178 @@ class GenerateDevenvCommand extends Command
         // end get port
 
         // get php version
-        $php = $quest->ask($input, $output, new ChoiceQuestion(
-            'Select php version, default is '.Php::PHP_VERSION_71,
+        $phpVersion = $quest->ask($input, $output, new ChoiceQuestion(
+            'Select php version, default is '.$project->getPhpOptions()->getVersion(),
             Php::getSupportedVersions(),
-            PHP::PHP_VERSION_71
+            $project->getPhpOptions()->getVersion()
         ));
-        $project->getPhpOptions()->setVersion($php);
+        $project->getPhpOptions()->setVersion($phpVersion);
         // end get php version
 
         // get php extensions
-        $extension = null;
-        switch ($php) {
-            case Php::PHP_VERSION_56:
-                $extension = new Php56AvailableExtensions();
-                break;
-            case Php::PHP_VERSION_70:
-                $extension = new Php70AvailableExtensions();
-                break;
-            case Php::PHP_VERSION_71:
-                $extension = new Php71AvailableExtensions();
-                break;
-            default:
-                throw new \RuntimeException(sprintf("Unsupported php extension version: %s", $php));
+        $extension = AvailableExtensionsFactory::create($phpVersion);
+
+        if ($quest->ask($input, $output, new ConfirmationQuestion(
+            sprintf(
+                'Do you want to disable some default extensions? They are %s. Y/n (n): ',
+                implode(", ", $project->getPhpOptions()->getExtensionNames())
+            ),
+            false
+        ))) {
+            $forDisableQuestion = new ChoiceQuestion(
+                'Pls, choose extensions for disable',
+                $project->getPhpOptions()->getExtensionNames()
+            );
+            $forDisableQuestion->setMultiselect(true);
+            $forDisableExtensions = $quest->ask($input, $output, $forDisableQuestion);
+
+            foreach ($forDisableExtensions as $extName) {
+                $project->getPhpOptions()->removeExtension($extName);
+            }
         }
-        $extensionsQuestion = new ChoiceQuestion('Select php extensions', array_keys($extension->getAll()));
-        $extensionsQuestion->setMultiselect(true);
-        $values = $quest->ask($input, $output, $extensionsQuestion);
-        foreach ($values as $extName) {
-            $project->getPhpOptions()->addExtension($extension->getPhpExtension($extName));
+
+        $availableToEnable = array_diff(array_keys($extension->getAll()), $project->getPhpOptions()->getExtensionNames());
+
+        if ($quest->ask($input, $output, new ConfirmationQuestion(
+            sprintf(
+                'Do you want to enable some additional extensions? %s are available. Y/n (n):',
+                implode(", ", $availableToEnable)
+            ),
+            false
+        ))) {
+            $extensionsQuestion = new ChoiceQuestion(
+                'Pls, choose extensions for enable',
+                $availableToEnable
+            );
+            $extensionsQuestion->setMultiselect(true);
+            $values = $quest->ask($input, $output, $extensionsQuestion);
+            foreach ($values as $extName) {
+                $project->getPhpOptions()->addExtension($extension->getPhpExtension($extName));
+            }
         }
         // end get php extensions
 
         // get mysql
-        $mysql = $quest->ask($input, $output, new ConfirmationQuestion('Do you want to enable mysql? (y/n): '));
+        $mysql = $quest->ask($input, $output, new ConfirmationQuestion(
+            'Do you want to enable mysql? (y/n): ',
+            $project->getMysqlOptions()->isEnabled()
+        ));
         if ($mysql) {
             $project->getMysqlOptions()->setEnabled(true);
             $version = $quest->ask($input, $output, new ChoiceQuestion(
-                'Select MySQL version, default is '.MySQL::VERSION_57,
+                'Select MySQL version, default is '.$project->getMysqlOptions()->getVersion(),
                 MySQL::getChoices(),
-                MySQL::VERSION_57
+                $project->getMysqlOptions()->getVersion()
             ));
             $project->getMysqlOptions()->setVersion($version);
 
-            $rootPwd = $quest->ask($input, $output, new Question("Mysql root password (default 123): ", '123'));
+            $rootPwd = $quest->ask($input, $output, new Question(
+                sprintf("Mysql root password (default %s): ", $project->getMysqlOptions()->getRootPassword()),
+                $project->getMysqlOptions()->getRootPassword()
+            ));
             $project->getMysqlOptions()->setRootPassword($rootPwd);
 
-            $dbName = $quest->ask($input, $output, new Question("Application database name (default db): ", 'db'));
+            $dbName = $quest->ask($input, $output, new Question(
+                sprintf("Application database name (default %s): ", $project->getMysqlOptions()->getDatabaseName()),
+                $project->getMysqlOptions()->getDatabaseName())
+            );
             $project->getMysqlOptions()->setDatabaseName($dbName);
 
-            $userName = $quest->ask($input, $output, new Question("Application user name (default db_user): ", 'db_user'));
+            $userName = $quest->ask($input, $output, new Question(
+                sprintf("Application user name (default %s): ", $project->getMysqlOptions()->getUsername()),
+                $project->getMysqlOptions()->getUsername()
+            ));
             $project->getMysqlOptions()->setUsername($userName);
 
-            $usrPwd = $quest->ask($input, $output, new Question($userName." password (default 123): ", '123'));
+            $usrPwd = $quest->ask($input, $output, new Question(
+                sprintf("%s password (default %s): ", $userName, $project->getMysqlOptions()->getPassword()),
+                $project->getMysqlOptions()->getPassword()
+            ));
             $project->getMysqlOptions()->setPassword($usrPwd);
         }
         // end get mysql
 
 
         // get mariadb
-        $mariadb = $quest->ask($input, $output, new ConfirmationQuestion('Do you want to enable MariaDb? (y/n): ', false));
+        $mariadb = $quest->ask($input, $output, new ConfirmationQuestion(
+            'Do you want to enable MariaDb? (y/n): ',
+            $project->getMariadbOptions()->isEnabled()
+        ));
         if ($mariadb) {
             $project->getMariadbOptions()->setEnabled(true);
             $version = $quest->ask($input, $output, new ChoiceQuestion(
-                'Select MariaDb version, default is '.MariaDB::VERSION_101,
+                'Select MariaDb version, default is '.$project->getMariadbOptions()->getVersion(),
                 MariaDB::getChoices(),
-                MariaDB::VERSION_101
+                $project->getMariadbOptions()->getVersion()
             ));
             $project->getMariadbOptions()->setVersion($version);
 
-            $rootPwd = $quest->ask($input, $output, new Question("MariaDb root password (default 123): ", '123'));
+            $rootPwd = $quest->ask($input, $output, new Question(
+                sprintf("MariaDB root password (default %s): ", $project->getMariadbOptions()->getRootPassword()),
+                $project->getMariadbOptions()->getRootPassword()
+            ));
             $project->getMariadbOptions()->setRootPassword($rootPwd);
 
-            $dbName = $quest->ask($input, $output, new Question("Application MariaDb database name (default db): ", 'db'));
+            $dbName = $quest->ask($input, $output, new Question(
+                    sprintf("Application MariaDB database name (default %s): ", $project->getMariadbOptions()->getDatabaseName()),
+                    $project->getMariadbOptions()->getDatabaseName())
+            );
             $project->getMariadbOptions()->setDatabaseName($dbName);
 
-            $userName = $quest->ask($input, $output, new Question("Application MariaDb user name (default db_user): ", 'db_user'));
+            $userName = $quest->ask($input, $output, new Question(
+                sprintf("Application MariaDB user name (default %s): ", $project->getMariadbOptions()->getUsername()),
+                $project->getMariadbOptions()->getUsername()
+            ));
             $project->getMariadbOptions()->setUsername($userName);
 
-            $usrPwd = $quest->ask($input, $output, new Question($userName." password (default 123): ", '123'));
+            $usrPwd = $quest->ask($input, $output, new Question(
+                sprintf("MariaDB %s password (default %s): ", $userName, $project->getMariadbOptions()->getPassword()),
+                $project->getMariadbOptions()->getPassword()
+            ));
             $project->getMariadbOptions()->setPassword($usrPwd);
         }
         // end get mariadb
 
         // get postgres
-        $postgres = $quest->ask($input, $output, new ConfirmationQuestion('Do you want to enable Postgres? (y/n): ', false));
+        $postgres = $quest->ask($input, $output, new ConfirmationQuestion(
+            'Do you want to enable Postgres? (y/n): ',
+            $project->getPostgresOptions()->isEnabled()
+        ));
         if ($postgres) {
             $project->getPostgresOptions()->setEnabled(true);
             $version = $quest->ask($input, $output, new ChoiceQuestion(
-                'Select Postgres version, default is '.Postgres::VERSION_96,
+                'Select Postgres version, default is '.$project->getPostgresOptions()->getVersion(),
                 Postgres::getChoices(),
-                Postgres::VERSION_96
+                $project->getPostgresOptions()->getVersion()
             ));
             $project->getPostgresOptions()->setVersion($version);
 
-            $userName = $quest->ask($input, $output, new Question("Root postgres user name (default root): ", 'root'));
+            $userName = $quest->ask($input, $output, new Question(
+                sprintf("Root postgres user name (default %s): ", $project->getPostgresOptions()->getRootUser()),
+                $project->getPostgresOptions()->getRootUser())
+            );
             $project->getPostgresOptions()->setRootUser($userName);
 
-            $rootPwd = $quest->ask($input, $output, new Question("Postgres root password (default 123): ", '123'));
+            $rootPwd = $quest->ask($input, $output, new Question(
+                sprintf("Postgres root password (default %s): ", $project->getPostgresOptions()->getRootPassword()),
+                $project->getPostgresOptions()->getRootPassword()
+            ));
             $project->getPostgresOptions()->setRootPassword($rootPwd);
 
-            $dbName = $quest->ask($input, $output, new Question("Application Postgres database name (default db): ", 'db'));
+            $dbName = $quest->ask($input, $output, new Question(
+                sprintf("Application Postgres database name (default %s): ", $project->getPostgresOptions()->getDatabaseName()),
+                $project->getPostgresOptions()->getDatabaseName()
+            ));
             $project->getPostgresOptions()->setDatabaseName($dbName);
         }
         // end get postgres
 
         //get elasticsearch
-        $elastic = $quest->ask($input, $output, new ConfirmationQuestion('Do you want to enable ElasticSearch? (y/n): ', false));
+        $elastic = $quest->ask($input, $output, new ConfirmationQuestion(
+            'Do you want to enable ElasticSearch? (y/n): ',
+            $project->getElasticsearchOptions()->isEnabled()
+        ));
+
         if ($elastic) {
             $project->getElasticsearchOptions()->setEnabled(true);
             $version = $quest->ask($input, $output, new ChoiceQuestion(
@@ -197,15 +263,15 @@ class GenerateDevenvCommand extends Command
         }
         //end get elasticsearch
 
-        if ($quest->ask($input, $output, new ConfirmationQuestion('Do you want to enable Memcache? (y/n): '))) {
+        if ($quest->ask($input, $output, new ConfirmationQuestion('Do you want to enable Memcache? (y/n): ', $project->getMemcachedOptions()->isEnabled()))) {
             $project->getMemcachedOptions()->setEnabled(true);
         }
 
-        if ($quest->ask($input, $output, new ConfirmationQuestion('Do you want to enable Redis? (y/n): ', false))) {
+        if ($quest->ask($input, $output, new ConfirmationQuestion('Do you want to enable Redis? (y/n): ', $project->getRedisOptions()->isEnabled()))) {
             $project->getRedisOptions()->setEnabled(true);
         }
 
-        if ($quest->ask($input, $output, new ConfirmationQuestion('Do you want to enable Mailhog? (y/n): ', false))) {
+        if ($quest->ask($input, $output, new ConfirmationQuestion('Do you want to enable Mailhog? (y/n): ', $project->getMailhogOptions()->isEnabled()))) {
             $project->getMailhogOptions()->setEnabled(true);
         }
 
