@@ -122,6 +122,19 @@ class Php extends Base
     }
 
     /**
+     * @param array $extNames
+     * @return Php
+     */
+    public function addExtensionsByName(array $extNames): self
+    {
+        foreach ($extNames as $val) {
+            $this->addExtensionByName($val);
+        }
+
+        return $this;
+    }
+
+    /**
      * @param string $extensionName
      * @return bool
      */
@@ -165,6 +178,20 @@ class Php extends Base
 
         if ($keyForUnset!==null) {
             unset($this->extensions[$keyForUnset]);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param array|string[] $extensionNames
+     * @return Php
+     */
+    public function removeExtensions(array $extensionNames): self
+    {
+        foreach ($extensionNames as $extName)
+        {
+            $this->removeExtension($extName);
         }
 
         return $this;
