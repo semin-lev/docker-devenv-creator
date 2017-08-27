@@ -37,6 +37,8 @@ class GenerateDevenvCommand extends Command
     {
         $this->addArgument('project_name', InputArgument::REQUIRED, 'Project name');
         $this->addOption('extract_to_dir', 'd', InputOption::VALUE_OPTIONAL, 'Extract to dir', './');
+        $this->addOption('zip', 'z', InputOption::VALUE_NONE, 'Save zip archive');
+
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
@@ -163,13 +165,17 @@ class GenerateDevenvCommand extends Command
 
         $zip = $generator->generate($project);
 
-        $archive = new \ZipArchive();
+        if ($input->getOption('zip')) {
+            copy($zip->getTmpFilename(), $input->getOption('extract_to_dir').'/'.$zip->getFilename());
+        } else {
+            $archive = new \ZipArchive();
 
-        try {
-            $archive->open($zip->getTmpFilename());
-            $archive->extractTo($input->getOption('extract_to_dir'));
-        } finally {
-            $archive->close();
+            try {
+                $archive->open($zip->getTmpFilename());
+                $archive->extractTo($input->getOption('extract_to_dir'));
+            } finally {
+                $archive->close();
+            }
         }
 
         $output->writeln("End");
