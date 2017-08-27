@@ -79,6 +79,28 @@ class Generator
     }
 
     /**
+     * @param Project $project
+     * @param $saveDir
+     * @param bool $asZip
+     */
+    public function save(Project $project, $saveDir, $asZip = false)
+    {
+        $zip = $this->generate($project);
+        if ($asZip) {
+            copy($zip->getTmpFilename(), $saveDir.'/'.$zip->getFilename());
+        } else {
+            $archive = new \ZipArchive();
+
+            try {
+                $archive->open($zip->getTmpFilename());
+                $archive->extractTo($saveDir);
+            } finally {
+                $archive->close();
+            }
+        }
+    }
+
+    /**
      * Generates the Readme file in Markdown format.
      *
      * @param Project $project

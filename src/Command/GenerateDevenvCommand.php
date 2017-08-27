@@ -36,7 +36,7 @@ class GenerateDevenvCommand extends Command
     protected function configure()
     {
         $this->addArgument('project_name', InputArgument::REQUIRED, 'Project name');
-        $this->addOption('extract_to_dir', 'd', InputOption::VALUE_OPTIONAL, 'Extract to dir', './');
+        $this->addOption('save_dir', 'd', InputOption::VALUE_OPTIONAL, 'Save to dir', './');
         $this->addOption('zip', 'z', InputOption::VALUE_NONE, 'Save zip archive');
 
     }
@@ -54,131 +54,123 @@ class GenerateDevenvCommand extends Command
         $postgresQuestFactory      = new PostgresQuestionFactory($project);
         $elasticSearchQuestFactory = new ElasticSearchQuestionFactory($project);
 
-        /** @var QuestionHelper $quest */
-        $quest = $this->getHelper('question');
 
-        // get app type
-        $applicationType = $quest->ask($input, $output, $appQuestFactory->getAppTypeQuestion());
-        $project->getApplicationOptions()->setApplicationType($applicationType);
-        //end get app type
+        if ($input->getOption('no-interaction')) {
+            /** @var QuestionHelper $quest */
+            $quest = $this->getHelper('question');
 
-        //get app port
-        $port = $quest->ask($input, $output, $appQuestFactory->getPortQuestion());
-        $project->setBasePort($port);
-        // end get port
+            // get app type
+            $applicationType = $quest->ask($input, $output, $appQuestFactory->getAppTypeQuestion());
+            $project->getApplicationOptions()->setApplicationType($applicationType);
+            //end get app type
 
-        // get php version
-        $phpVersion = $quest->ask($input, $output, $phpQuestFactory->getVersionQuestion());
-        $project->getPhpOptions()->setVersion($phpVersion);
-        // end get php version
+            //get app port
+            $port = $quest->ask($input, $output, $appQuestFactory->getPortQuestion());
+            $project->setBasePort($port);
+            // end get port
 
-        // get php extensions
-        if ($quest->ask($input, $output, $phpQuestFactory->getConfirmDisableExtensionQuestion())) {
-            $forDisableExtensions = $quest->ask($input, $output, $phpQuestFactory->getForDisableQuestion());
-            $project->getPhpOptions()->removeExtensions($forDisableExtensions);
-        }
+            // get php version
+            $phpVersion = $quest->ask($input, $output, $phpQuestFactory->getVersionQuestion());
+            $project->getPhpOptions()->setVersion($phpVersion);
+            // end get php version
 
-        if ($quest->ask($input, $output, $phpQuestFactory->getConfirmEnableExtensionQuestion())) {
-            $values = $quest->ask($input, $output, $phpQuestFactory->getForEnableQuestion());
-            $project->getPhpOptions()->addExtensionsByName($values);
-        }
-        // end get php extensions
+            // get php extensions
+            if ($quest->ask($input, $output, $phpQuestFactory->getConfirmDisableExtensionQuestion())) {
+                $forDisableExtensions = $quest->ask($input, $output, $phpQuestFactory->getForDisableQuestion());
+                $project->getPhpOptions()->removeExtensions($forDisableExtensions);
+            }
 
-        $sqlDbs = [
-            [$mysqlQuestFactory, $project->getMysqlOptions()],
-            [$mariadbQuestFactory, $project->getMariadbOptions()]
-        ];
+            if ($quest->ask($input, $output, $phpQuestFactory->getConfirmEnableExtensionQuestion())) {
+                $values = $quest->ask($input, $output, $phpQuestFactory->getForEnableQuestion());
+                $project->getPhpOptions()->addExtensionsByName($values);
+            }
+            // end get php extensions
 
-        foreach ($sqlDbs as $db) {
-            /**
-             * @var $dbQuestFactory \Command\QuestionFactory\AbstractMysqlQuestionFactory
-             * @var $dbOptions AbstractMySQL
-             */
-            list($dbQuestFactory, $dbOptions) = $db;
+            $sqlDbs = [
+                [$mysqlQuestFactory, $project->getMysqlOptions()],
+                [$mariadbQuestFactory, $project->getMariadbOptions()]
+            ];
 
-            if ($quest->ask($input, $output, $dbQuestFactory->getIsEnabledQuestion())) {
-                $dbOptions->setEnabled(true);
+            foreach ($sqlDbs as $db) {
+                /**
+                 * @var $dbQuestFactory \Command\QuestionFactory\AbstractMysqlQuestionFactory
+                 * @var $dbOptions AbstractMySQL
+                 */
+                list($dbQuestFactory, $dbOptions) = $db;
 
-                $version = $quest->ask($input, $output, $dbQuestFactory->getVersionQuestion());
-                $dbOptions->setVersion($version);
+                if ($quest->ask($input, $output, $dbQuestFactory->getIsEnabledQuestion())) {
+                    $dbOptions->setEnabled(true);
 
-                $rootPwd = $quest->ask($input, $output, $dbQuestFactory->getRootPasswordQuestion());
-                $dbOptions->setRootPassword($rootPwd);
+                    $version = $quest->ask($input, $output, $dbQuestFactory->getVersionQuestion());
+                    $dbOptions->setVersion($version);
 
-                $dbName = $quest->ask($input, $output, $dbQuestFactory->getDbNameQuestion());
-                $dbOptions->setDatabaseName($dbName);
+                    $rootPwd = $quest->ask($input, $output, $dbQuestFactory->getRootPasswordQuestion());
+                    $dbOptions->setRootPassword($rootPwd);
 
-                $userName = $quest->ask($input, $output, $dbQuestFactory->getDbUserNameQuestion());
-                $dbOptions->setUsername($userName);
+                    $dbName = $quest->ask($input, $output, $dbQuestFactory->getDbNameQuestion());
+                    $dbOptions->setDatabaseName($dbName);
 
-                $usrPwd = $quest->ask($input, $output, $dbQuestFactory->getDbUserPasswordQuestion());
-                $dbOptions->setPassword($usrPwd);
+                    $userName = $quest->ask($input, $output, $dbQuestFactory->getDbUserNameQuestion());
+                    $dbOptions->setUsername($userName);
+
+                    $usrPwd = $quest->ask($input, $output, $dbQuestFactory->getDbUserPasswordQuestion());
+                    $dbOptions->setPassword($usrPwd);
+                } else {
+                    $dbOptions->setEnabled(false);
+                }
+            }
+
+            // get postgres
+            if ($quest->ask($input, $output, $postgresQuestFactory->getIsEnabledQuestion())) {
+                $project->getPostgresOptions()->setEnabled(true);
+
+                $version = $quest->ask($input, $output, $postgresQuestFactory->getVersionQuestion());
+                $project->getPostgresOptions()->setVersion($version);
+
+                $userName = $quest->ask($input, $output, $postgresQuestFactory->getDbUserNameQuestion());
+                $project->getPostgresOptions()->setRootUser($userName);
+
+                $rootPwd = $quest->ask($input, $output, $postgresQuestFactory->getDbUserPasswordQuestion());
+                $project->getPostgresOptions()->setRootPassword($rootPwd);
+
+                $dbName = $quest->ask($input, $output, $postgresQuestFactory->getDbNameQuestion());
+                $project->getPostgresOptions()->setDatabaseName($dbName);
             } else {
-                $dbOptions->setEnabled(false);
+                $project->getPostgresOptions()->setEnabled(false);
             }
-        }
+            // end get postgres
 
-        // get postgres
-        if ($quest->ask($input, $output, $postgresQuestFactory->getIsEnabledQuestion())) {
-            $project->getPostgresOptions()->setEnabled(true);
-
-            $version = $quest->ask($input, $output, $postgresQuestFactory->getVersionQuestion());
-            $project->getPostgresOptions()->setVersion($version);
-
-            $userName = $quest->ask($input, $output, $postgresQuestFactory->getDbUserNameQuestion());
-            $project->getPostgresOptions()->setRootUser($userName);
-
-            $rootPwd = $quest->ask($input, $output, $postgresQuestFactory->getDbUserPasswordQuestion());
-            $project->getPostgresOptions()->setRootPassword($rootPwd);
-
-            $dbName = $quest->ask($input, $output, $postgresQuestFactory->getDbNameQuestion());
-            $project->getPostgresOptions()->setDatabaseName($dbName);
-        } else {
-            $project->getPostgresOptions()->setEnabled(false);
-        }
-        // end get postgres
-
-        //get elasticsearch
-        if ($quest->ask($input, $output, $elasticSearchQuestFactory->getIsEnabledQuestion())) {
-            $project->getElasticsearchOptions()->setEnabled(true);
-            $version = $quest->ask($input, $output, $elasticSearchQuestFactory->getVersionQuestion());
-            $project->getElasticsearchOptions()->setVersion($version);
-        } else {
-            $project->getElasticsearchOptions()->setEnabled(false);
-        }
-        //end get elasticsearch
-
-        $project
-            ->getMemcachedOptions()
-            ->setEnabled($quest->ask($input, $output, (new MemcacheQuestionFactory($project))->getIsEnabledQuestion()))
-        ;
-
-        $project
-            ->getRedisOptions()
-            ->setEnabled($quest->ask($input, $output, (new RedisQuestionFactory($project))->getIsEnabledQuestion()))
-        ;
-
-        $project
-            ->getMailhogOptions()
-            ->setEnabled($quest->ask($input, $output, (new MailhogQuestionFactory($project))->getIsEnabledQuestion()))
-        ;
-
-        $zip = $generator->generate($project);
-
-        if ($input->getOption('zip')) {
-            copy($zip->getTmpFilename(), $input->getOption('extract_to_dir').'/'.$zip->getFilename());
-        } else {
-            $archive = new \ZipArchive();
-
-            try {
-                $archive->open($zip->getTmpFilename());
-                $archive->extractTo($input->getOption('extract_to_dir'));
-            } finally {
-                $archive->close();
+            //get elasticsearch
+            if ($quest->ask($input, $output, $elasticSearchQuestFactory->getIsEnabledQuestion())) {
+                $project->getElasticsearchOptions()->setEnabled(true);
+                $version = $quest->ask($input, $output, $elasticSearchQuestFactory->getVersionQuestion());
+                $project->getElasticsearchOptions()->setVersion($version);
+            } else {
+                $project->getElasticsearchOptions()->setEnabled(false);
             }
+            //end get elasticsearch
+
+            $project
+                ->getMemcachedOptions()
+                ->setEnabled(
+                    $quest->ask($input, $output, (new MemcacheQuestionFactory($project))->getIsEnabledQuestion())
+                );
+
+            $project
+                ->getRedisOptions()
+                ->setEnabled(
+                    $quest->ask($input, $output, (new RedisQuestionFactory($project))->getIsEnabledQuestion())
+                );
+
+            $project
+                ->getMailhogOptions()
+                ->setEnabled(
+                    $quest->ask($input, $output, (new MailhogQuestionFactory($project))->getIsEnabledQuestion())
+                );
         }
 
-        $output->writeln("End");
 
+        $generator->save($project, $input->getOption('save_dir'), $input->getOption('zip'));
+        $output->writeln("Environment has been successfully generated");
     }
 }
