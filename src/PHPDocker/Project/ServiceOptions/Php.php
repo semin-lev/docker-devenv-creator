@@ -98,11 +98,7 @@ class Php extends Base
      */
     public function addExtensionByName(string $extensionName): self
     {
-        static $extensionInstance;
-
-        if ($extensionInstance === null) {
-            $extensionInstance = AvailableExtensionsFactory::create($this->getVersion());
-        }
+        $extensionInstance = AvailableExtensionsFactory::create($this->getVersion());
 
         $this->addExtension($extensionInstance->getPhpExtension($extensionName));
 
@@ -224,8 +220,19 @@ class Php extends Base
         if (in_array($version, self::SUPPORTED_VERSIONS, true) === false) {
             throw new \InvalidArgumentException(sprintf('PHP version specified (%s) is unsupported', $version));
         }
-
+        
         $this->version = $version;
+
+        // update extensions
+        $extNames = $this->getExtensionNames();
+        $this->clearAllExtensions();
+        
+        $extensionsFactory = AvailableExtensionsFactory::create($this->version);
+        foreach ($extNames as $extName) {
+            if ($extensionsFactory->isAvailable($extName)) {
+                $this->addExtensionByName($extName);
+            }
+        }
 
         return $this;
     }
