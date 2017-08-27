@@ -7,10 +7,10 @@ Console variant of https://github.com/phpdocker-io/phpdocker.io
 Download .phar archive from [last release](https://github.com/semin-lev/docker-devenv-creator/releases).
 Place it to a project dir or to /usr/local/bin.
 
-##Usage
+## Usage
 Just call generate command with project name argument. Project name must be without spaces or special characters.
 
-####Example
+#### Example
 
     docker-env-generator.phar generate test-project
     
@@ -20,7 +20,7 @@ All docker configuration files will be stored at the directory and after you nee
     composer up -d 
     
 
-####Options
+#### Options
 - -d, --save_dir
     
     A directory to save config files. The default value is dir from you call the command.
