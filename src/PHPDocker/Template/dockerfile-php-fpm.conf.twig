@@ -33,5 +33,7 @@ RUN curl -s https://packagecloud.io/install/repositories/phalcon/stable/script.d
     && {{ cleanupCommand }}
 {% endif %}
 
+RUN apt-get -y --no-install-recommends install git ssh && {{ cleanupCommand }}
+
 WORKDIR "/application"
 {% endspaceless %}
