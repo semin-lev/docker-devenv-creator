@@ -17,7 +17,7 @@ Just call generate command with project name argument. Project name must be with
 Questions about your config will be asked in interactive mode. 
 All docker configuration files will be stored at the directory and after you need just call
 
-    composer up -d 
+    docker-compose up -d 
     
 
 #### Options
