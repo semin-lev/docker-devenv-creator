@@ -112,6 +112,9 @@ class GenerateDevenvCommand extends Command
 
                 $usrPwd = $quest->ask($input, $output, $dbQuestFactory->getDbUserPasswordQuestion());
                 $dbOptions->setPassword($usrPwd);
+
+                $dbPort = $quest->ask($input, $output, $dbQuestFactory->getDbPortQuestion());
+                $dbOptions->setPort($dbPort);
             } else {
                 $dbOptions->setEnabled(false);
             }

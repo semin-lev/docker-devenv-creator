@@ -12,6 +12,7 @@ namespace Command\QuestionFactory;
 
 
 use Command\QuestionFactory\Traits\DbNameQuestionTrait;
+use Command\QuestionFactory\Traits\DbPortQuestionTrait;
 use Command\QuestionFactory\Traits\DbRootPasswordQuestionTrait;
 use Command\QuestionFactory\Traits\DbUserNameQuestionTrait;
 use Command\QuestionFactory\Traits\DbUserPasswordQuestionTrait;
@@ -26,7 +27,8 @@ abstract class AbstractMysqlQuestionFactory extends AbstractQuestionFactory
         DbUserNameQuestionTrait,
         DbUserPasswordQuestionTrait,
         DbRootPasswordQuestionTrait,
-        VersionQuestionTrait
+        VersionQuestionTrait,
+        DbPortQuestionTrait
     ;
 
     abstract function getOptions(): AbstractMySQL;
@@ -64,5 +66,8 @@ abstract class AbstractMysqlQuestionFactory extends AbstractQuestionFactory
         return $this->getOptions()->getVersion();
     }
 
-
+    protected function getDefaultDbPort(): ?int
+    {
+        return $this->getOptions()->getPort();
+    }
 }

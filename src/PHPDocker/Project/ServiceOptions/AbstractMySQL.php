@@ -51,6 +51,11 @@ abstract class AbstractMySQL extends Base
     protected $password;
 
     /**
+     * @var null|int
+     */
+    protected $port = 8306;
+
+    /**
      * Return an array of available versions, like so:
      * [
      *    'version' => 'version_name',
@@ -161,6 +166,25 @@ abstract class AbstractMySQL extends Base
     public function setPassword(string $password = null): self
     {
         $this->password = $password;
+
+        return $this;
+    }
+
+    /**
+     * @return int|null
+     */
+    public function getPort(): ?int
+    {
+        return $this->port;
+    }
+
+    /**
+     * @param int|null $port
+     * @return AbstractMySQL
+     */
+    public function setPort(?int $port): self
+    {
+        $this->port = $port;
 
         return $this;
     }
