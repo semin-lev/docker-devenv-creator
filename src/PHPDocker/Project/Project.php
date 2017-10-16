@@ -39,6 +39,11 @@ class Project
     protected $basePort;
 
     /**
+     * @var string
+     */
+    protected $pathToSSHKeys = '~/.ssh';
+
+    /**
      * @var ServiceOptions\Application
      */
     protected $applicationOptions;
@@ -544,5 +549,21 @@ class Project
         $this->clickhouseOptions->setEnabled($hasClickhouse);
 
         return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getPathToSSHKeys(): string
+    {
+        return $this->pathToSSHKeys;
+    }
+
+    /**
+     * @param string $pathToSSHKeys
+     */
+    public function setPathToSSHKeys(string $pathToSSHKeys)
+    {
+        $this->pathToSSHKeys = $pathToSSHKeys;
     }
 }

@@ -66,6 +66,11 @@ class GenerateDevenvCommand extends Command
         $project->setBasePort($port);
         // end get port
 
+        // get ssh keys path
+        $path = $quest->ask($input, $output, $appQuestFactory->getPathToSSHKeysQuestion());
+        $project->setPathToSSHKeys($path);
+        // end get ssh keys path
+
         // get php version
         $phpVersion = $quest->ask($input, $output, $phpQuestFactory->getVersionQuestion());
         $project->getPhpOptions()->setVersion($phpVersion);

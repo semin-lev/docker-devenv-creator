@@ -50,4 +50,21 @@ class ApplicationQuestionFactory extends AbstractQuestionFactory
 
         return $portQuest;
     }
+
+    public function getPathToSSHKeysQuestion(): Question
+    {
+        $quest = new Question(
+            sprintf("What is the path to your ssh keys, default is %s", $this->getProject()->getPathToSSHKeys()),
+            $this->getProject()->getPathToSSHKeys()
+        );
+
+        /*$quest->setValidator(function ($path){
+            if (!is_dir($path)) {
+                throw new \RuntimeException(sprintf("Path %s doesn't exist", $path));
+            }
+            return $path;
+        });*/
+
+        return $quest;
+    }
 }

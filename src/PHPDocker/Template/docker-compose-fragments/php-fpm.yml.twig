@@ -14,3 +14,4 @@
       volumes:
         - .:/application
         - ./phpdocker/{{ phpIniOverrides }}:{{ iniLocation }}99-overrides.ini
+        - {{ project.getPathToSSHKeys() }}:/root/.ssh
