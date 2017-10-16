@@ -33,7 +33,12 @@ RUN curl -s https://packagecloud.io/install/repositories/phalcon/stable/script.d
     && {{ cleanupCommand }}
 {% endif %}
 
-RUN apt-get -y --no-install-recommends install git ssh && {{ cleanupCommand }}
+RUN apt-get update \
+    && apt-get -y --no-install-recommends install git ssh && {{ cleanupCommand }}
+
+RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+RUN php composer-setup.php --install-dir=/usr/local/bin --filename=composer
+RUN php -r "unlink('composer-setup.php');"
 
 WORKDIR "/application"
 {% endspaceless %}
