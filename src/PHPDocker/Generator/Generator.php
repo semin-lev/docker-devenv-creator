@@ -18,9 +18,11 @@
 namespace PHPDocker\Generator;
 
 use Michelf\MarkdownExtra;
+use PHPDocker\Generator\GeneratedFile\BinaryExecutorFile;
 use PHPDocker\Interfaces\ArchiveInterface;
 use PHPDocker\PhpExtension\PhpExtension;
 use PHPDocker\Project\Project;
+use PHPDocker\Project\ServiceOptions\Application;
 use PHPDocker\Zip\Archiver;
 
 /**
@@ -73,7 +75,12 @@ class Generator
             ->addFile($this->getPhpDockerConf($project))
             ->addFile($this->getPhpIniOverrides($project))
             ->addFile($this->getNginxConf($project))
-            ->addFile($this->getDockerCompose($project), true);
+            ->addFile($this->getDockerCompose($project), true)
+        ;
+
+        foreach ($this->getBinaryFiles($project) as $binaryFile) {
+            $this->zipArchiver->addFile($binaryFile, true);
+        }
 
         return $this->zipArchiver->generateArchive(sprintf('%s.zip', $project->getProjectNameSlug()));
     }
@@ -94,6 +101,9 @@ class Generator
             try {
                 $archive->open($zip->getTmpFilename());
                 $archive->extractTo($saveDir);
+                foreach ($this->getBinaryFiles($project) as $binaryFile) {
+                    chmod($binaryFile->getFilename(), 0777);
+                }
             } finally {
                 $archive->close();
             }
@@ -219,5 +229,23 @@ class Generator
         ];
 
         return new GeneratedFile\NginxConf($this->twig->render('nginx.conf.twig', $data));
+    }
+
+    /**
+     * @param Project $project
+     * @return BinaryExecutorFile[]
+     */
+    private function getBinaryFiles(Project $project): array
+    {
+        $result = [
+            new BinaryExecutorFile('php', "#!/bin/bash\ndocker-compose exec php-fpm php $*"),
+            new BinaryExecutorFile('composer', "#!/bin/bash\ndocker-compose exec php-fpm php /usr/local/bin/composer $*"),
+        ];
+
+        if ($project->getApplicationOptions()->getApplicationType()==Application::APPLICATION_TYPE_SYMFONY) {
+            $result[] = new BinaryExecutorFile('symfony', "#!/bin/bash\ndocker-compose exec php-fpm php bin/console $*");
+        }
+
+        return $result;
     }
 }
