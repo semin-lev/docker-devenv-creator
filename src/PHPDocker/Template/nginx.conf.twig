@@ -5,7 +5,7 @@ server {
 
     access_log /var/log/nginx/application.access.log;
 
-{% if applicationType == 'symfony' or applicationType == 'silex' %}
+{% if applicationType == 'symfony' or applicationType == 'silex' or applicationType == 'symfony_flex' %}
     {% spaceless %}
         {% if applicationType == 'symfony' %}
             {% set indexFile = 'app' %}
@@ -13,7 +13,9 @@ server {
             {% set indexFile = 'index' %}
         {% endif %}
 
-    root /application/web;
+        {% set rootDir = applicationType == 'symfony_flex' ? '/application/public' : '/application/web' %}
+
+    root {{ rootDir }};
     
     rewrite ^/{{ indexFile }}\.php/?(.*)$ /$1 permanent;
     

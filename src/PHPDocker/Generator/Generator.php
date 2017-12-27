@@ -242,7 +242,8 @@ class Generator
             new BinaryExecutorFile('composer', "#!/bin/bash\ndocker-compose exec php-fpm php /usr/local/bin/composer $*"),
         ];
 
-        if ($project->getApplicationOptions()->getApplicationType()==Application::APPLICATION_TYPE_SYMFONY) {
+        $appType = $project->getApplicationOptions()->getApplicationType();
+        if (in_array($appType, Application::SYMFONY_TYPES)) {
             $result[] = new BinaryExecutorFile('symfony', "#!/bin/bash\ndocker-compose exec php-fpm php bin/console $*");
         }
 
