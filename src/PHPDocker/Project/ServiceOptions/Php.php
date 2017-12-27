@@ -39,6 +39,11 @@ class Php extends Base
     const PHP_VERSION_71 = '7.1.x';
 
     /**
+     * PHP 7.2.x
+     */
+    const PHP_VERSION_72 = '7.2.x';
+
+    /**
      * PHP 5.6.x
      */
     const PHP_VERSION_56 = '5.6.x';
@@ -52,6 +57,7 @@ class Php extends Base
      * Supported PHP versions
      */
     const SUPPORTED_VERSIONS = [
+        self::PHP_VERSION_72,
         self::PHP_VERSION_71,
         self::PHP_VERSION_70,
         self::PHP_VERSION_56,

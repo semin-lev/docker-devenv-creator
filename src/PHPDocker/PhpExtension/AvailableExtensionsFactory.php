@@ -17,6 +17,8 @@
 
 namespace PHPDocker\PhpExtension;
 
+use PHPDocker\Project\ServiceOptions\Php;
+
 /**
  * Factory to specific PHP extensions list based on php version.
  *
@@ -26,27 +28,13 @@ namespace PHPDocker\PhpExtension;
 class AvailableExtensionsFactory
 {
     /**
-     * PHP 7.0.x
-     */
-    const PHP_VERSION_70 = '7.0.x';
-
-    /**
-     * PHP 7.0.x
-     */
-    const PHP_VERSION_71 = '7.1.x';
-
-    /**
-     * PHP 5.6.x
-     */
-    const PHP_VERSION_56 = '5.6.x';
-
-    /**
      * Supported PHP versions
      */
     const SUPPORTED_VERSIONS = [
-        self::PHP_VERSION_56 => Php56AvailableExtensions::class,
-        self::PHP_VERSION_70 => Php70AvailableExtensions::class,
-        self::PHP_VERSION_71 => Php71AvailableExtensions::class,
+        Php::PHP_VERSION_56 => Php56AvailableExtensions::class,
+        Php::PHP_VERSION_70 => Php70AvailableExtensions::class,
+        Php::PHP_VERSION_71 => Php71AvailableExtensions::class,
+        Php::PHP_VERSION_72 => Php72AvailableExtensions::class
     ];
 
     /**

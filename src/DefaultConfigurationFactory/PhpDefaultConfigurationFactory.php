@@ -22,7 +22,7 @@ class PhpDefaultConfigurationFactory implements DefaultConfigurationFactoryInter
     public function getDefaultConfiguration() : Php
     {
         $php = new Php();
-        $php->setVersion(Php::PHP_VERSION_71);
+        $php->setVersion(Php::PHP_VERSION_72);
 
         $extensions = AvailableExtensionsFactory::create($php->getVersion());
         $neededExtension = [
